@@ -1,0 +1,630 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>打字练习</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .practice-section {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        .typing-area {
+            flex: 1;
+            background-color: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        .stats-area {
+            width: 300px;
+            background-color: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        .keyboard-container {
+            background-color: #333;
+            padding: 30px;
+            border-radius: 10px;
+            margin: 20px 0;
+        }
+        .keyboard {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            width: 100%;
+        }
+        .row {
+            display: flex;
+            gap: 8px;
+            justify-content: center;
+        }
+        .key {
+            flex: 1;
+            min-width: 50px;
+            height: 60px;
+            border: 2px solid #666;
+            border-radius: 5px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            font-weight: bold;
+            color: #333;
+            position: relative;
+            transition: all 0.2s;
+            background-color: #fff;
+        }
+        /* 特殊按键样式 */
+        .key[data-key="Tab"],
+        .key[data-key="CapsLock"],
+        .key[data-key="Shift"],
+        .key[data-key="Control"],
+        .key[data-key="Meta"],
+        .key[data-key="Alt"],
+        .key[data-key="ContextMenu"] {
+            flex: 1.5;
+        }
+        .key[data-key="Backspace"],
+        .key[data-key="Enter"] {
+            flex: 2;
+        }
+        .key[data-key=" "] {
+            flex: 4;
+        }
+        .key.active {
+            transform: translateY(2px);
+            box-shadow: 0 0 5px rgba(0,0,0,0.3);
+        }
+        /* 左手小指 */
+        .pink-finger { background-color: #FFB6C1; }
+        /* 左手无名指 */
+        .orange-finger { background-color: #FFA07A; }
+        /* 左手中指 */
+        .yellow-finger { background-color: #FAFAD2; }
+        /* 左手食指 */
+        .green-finger { background-color: #98FB98; }
+        /* 右手食指 */
+        .blue-finger { background-color: #87CEEB; }
+        /* 右手中指 */
+        .indigo-finger { background-color: #B0C4DE; }
+        /* 右手无名指 */
+        .purple-finger { background-color: #DDA0DD; }
+        /* 右手小指 */
+        .violet-finger { background-color: #E6E6FA; }
+        /* 两手拇指 */
+        .thumb { background-color: #F0F8FF; }
+
+        .finger-guide {
+            margin: 20px 0;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            justify-content: center;
+        }
+        .finger-item {
+            display: flex;
+            align-items: center;
+            margin-right: 15px;
+        }
+        .color-box {
+            width: 20px;
+            height: 20px;
+            margin-right: 5px;
+            border: 1px solid #666;
+        }
+        #currentWord {
+            font-size: 48px;
+            margin: 20px 0;
+            text-align: center;
+            color: #333;
+            min-height: 80px;
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+        }
+        .word-letter {
+            position: relative;
+            padding: 0 5px;
+        }
+        .word-letter.current {
+            background-color: #e6f7ff;
+            border-radius: 5px;
+        }
+        .word-letter.correct {
+            color: #52c41a;
+        }
+        .word-letter.incorrect {
+            color: #f5222d;
+        }
+        .finger-hint {
+            position: absolute;
+            top: -20px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 12px;
+            color: #666;
+            white-space: nowrap;
+        }
+        .key.highlight {
+            animation: pulse 1s infinite;
+        }
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+        .progress {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+            margin-top: 20px;
+        }
+        .progress-item {
+            text-align: center;
+            padding: 10px;
+            background-color: #f8f9fa;
+            border-radius: 5px;
+        }
+        .progress-item h3 {
+            margin: 0;
+            font-size: 14px;
+            color: #666;
+        }
+        .progress-item span {
+            font-size: 24px;
+            font-weight: bold;
+            color: #333;
+        }
+        .stats {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        .stat-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px;
+            background-color: #f8f9fa;
+            border-radius: 5px;
+        }
+        .stat-label {
+            font-size: 14px;
+            color: #666;
+        }
+        .stat-value {
+            font-size: 18px;
+            font-weight: bold;
+            color: #333;
+        }
+        .keyboard-focus {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+        .keyboard-focus-content {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>打字练习</h1>
+            <div class="finger-guide">
+                <div class="finger-item">
+                    <div class="color-box pink-finger"></div>
+                    <span>左小指</span>
+                </div>
+                <div class="finger-item">
+                    <div class="color-box orange-finger"></div>
+                    <span>左无名指</span>
+                </div>
+                <div class="finger-item">
+                    <div class="color-box yellow-finger"></div>
+                    <span>左中指</span>
+                </div>
+                <div class="finger-item">
+                    <div class="color-box green-finger"></div>
+                    <span>左食指</span>
+                </div>
+                <div class="finger-item">
+                    <div class="color-box thumb"></div>
+                    <span>拇指</span>
+                </div>
+                <div class="finger-item">
+                    <div class="color-box blue-finger"></div>
+                    <span>右食指</span>
+                </div>
+                <div class="finger-item">
+                    <div class="color-box indigo-finger"></div>
+                    <span>右中指</span>
+                </div>
+                <div class="finger-item">
+                    <div class="color-box purple-finger"></div>
+                    <span>右无名指</span>
+                </div>
+                <div class="finger-item">
+                    <div class="color-box violet-finger"></div>
+                    <span>右小指</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="practice-section">
+            <div class="typing-area">
+                <div id="currentWord"></div>
+                <div class="progress">
+                    <div class="progress-item">
+                        <h3>等级</h3>
+                        <span id="level">1</span>
+                    </div>
+                    <div class="progress-item">
+                        <h3>已输入单词数</h3>
+                        <span id="wordsTyped">0</span>
+                    </div>
+                    <div class="progress-item">
+                        <h3>准确率</h3>
+                        <span id="accuracy">0%</span>
+                    </div>
+                </div>
+            </div>
+            <div class="stats-area">
+                <div class="stats">
+                    <div class="stat-item">
+                        <span class="stat-label">当前速度</span>
+                        <span class="stat-value" id="speed">0 WPM</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">最佳速度</span>
+                        <span class="stat-value" id="bestSpeed">0 WPM</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">练习时间</span>
+                        <span class="stat-value" id="practiceTime">0:00</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="keyboard-container">
+            <div class="keyboard">
+                <!-- 功能键行 -->
+                <div class="row">
+                    <div class="key pink-finger" data-key="Escape">Esc</div>
+                    <div class="key pink-finger" data-key="F1">F1</div>
+                    <div class="key orange-finger" data-key="F2">F2</div>
+                    <div class="key yellow-finger" data-key="F3">F3</div>
+                    <div class="key green-finger" data-key="F4">F4</div>
+                    <div class="key green-finger" data-key="F5">F5</div>
+                    <div class="key blue-finger" data-key="F6">F6</div>
+                    <div class="key blue-finger" data-key="F7">F7</div>
+                    <div class="key indigo-finger" data-key="F8">F8</div>
+                    <div class="key purple-finger" data-key="F9">F9</div>
+                    <div class="key violet-finger" data-key="F10">F10</div>
+                    <div class="key violet-finger" data-key="F11">F11</div>
+                    <div class="key violet-finger" data-key="F12">F12</div>
+                </div>
+                <!-- 数字行 -->
+                <div class="row">
+                    <div class="key pink-finger" data-key="`">`</div>
+                    <div class="key pink-finger" data-key="1">1</div>
+                    <div class="key orange-finger" data-key="2">2</div>
+                    <div class="key yellow-finger" data-key="3">3</div>
+                    <div class="key green-finger" data-key="4">4</div>
+                    <div class="key green-finger" data-key="5">5</div>
+                    <div class="key blue-finger" data-key="6">6</div>
+                    <div class="key blue-finger" data-key="7">7</div>
+                    <div class="key indigo-finger" data-key="8">8</div>
+                    <div class="key purple-finger" data-key="9">9</div>
+                    <div class="key violet-finger" data-key="0">0</div>
+                    <div class="key violet-finger" data-key="-">-</div>
+                    <div class="key violet-finger" data-key="=">=</div>
+                    <div class="key violet-finger" data-key="Backspace">←</div>
+                </div>
+                <!-- 第一行 -->
+                <div class="row">
+                    <div class="key pink-finger" data-key="Tab">Tab</div>
+                    <div class="key pink-finger" data-key="q">Q</div>
+                    <div class="key orange-finger" data-key="w">W</div>
+                    <div class="key yellow-finger" data-key="e">E</div>
+                    <div class="key green-finger" data-key="r">R</div>
+                    <div class="key green-finger" data-key="t">T</div>
+                    <div class="key blue-finger" data-key="y">Y</div>
+                    <div class="key blue-finger" data-key="u">U</div>
+                    <div class="key indigo-finger" data-key="i">I</div>
+                    <div class="key purple-finger" data-key="o">O</div>
+                    <div class="key violet-finger" data-key="p">P</div>
+                    <div class="key violet-finger" data-key="[">[</div>
+                    <div class="key violet-finger" data-key="]">]</div>
+                    <div class="key violet-finger" data-key="\\">\</div>
+                </div>
+                <!-- 第二行 -->
+                <div class="row">
+                    <div class="key pink-finger" data-key="CapsLock">Caps</div>
+                    <div class="key pink-finger" data-key="a">A</div>
+                    <div class="key orange-finger" data-key="s">S</div>
+                    <div class="key yellow-finger" data-key="d">D</div>
+                    <div class="key green-finger" data-key="f">F</div>
+                    <div class="key green-finger" data-key="g">G</div>
+                    <div class="key blue-finger" data-key="h">H</div>
+                    <div class="key blue-finger" data-key="j">J</div>
+                    <div class="key indigo-finger" data-key="k">K</div>
+                    <div class="key purple-finger" data-key="l">L</div>
+                    <div class="key violet-finger" data-key=";">;</div>
+                    <div class="key violet-finger" data-key="'">'</div>
+                    <div class="key violet-finger" data-key="Enter">Enter</div>
+                </div>
+                <!-- 第三行 -->
+                <div class="row">
+                    <div class="key pink-finger" data-key="Shift">Shift</div>
+                    <div class="key pink-finger" data-key="z">Z</div>
+                    <div class="key orange-finger" data-key="x">X</div>
+                    <div class="key yellow-finger" data-key="c">C</div>
+                    <div class="key green-finger" data-key="v">V</div>
+                    <div class="key green-finger" data-key="b">B</div>
+                    <div class="key blue-finger" data-key="n">N</div>
+                    <div class="key blue-finger" data-key="m">M</div>
+                    <div class="key indigo-finger" data-key=",">,</div>
+                    <div class="key purple-finger" data-key=".">.</div>
+                    <div class="key violet-finger" data-key="/">/</div>
+                    <div class="key violet-finger" data-key="Shift">Shift</div>
+                </div>
+                <!-- 最后一行 -->
+                <div class="row">
+                    <div class="key pink-finger" data-key="Control">Ctrl</div>
+                    <div class="key pink-finger" data-key="Meta">Win</div>
+                    <div class="key pink-finger" data-key="Alt">Alt</div>
+                    <div class="key thumb" data-key=" " style="flex: 4;">Space</div>
+                    <div class="key violet-finger" data-key="Alt">Alt</div>
+                    <div class="key violet-finger" data-key="Meta">Win</div>
+                    <div class="key violet-finger" data-key="ContextMenu">Menu</div>
+                    <div class="key violet-finger" data-key="Control">Ctrl</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentWord = '';
+        let wordsTyped = 0;
+        let correctWords = 0;
+        let currentInput = '';
+        let startTime = null;
+        let bestSpeed = 0;
+        let hasError = false;  // 添加错误标记
+        const userId = 'user_' + Math.random().toString(36).substr(2, 9);
+
+        // 键盘映射
+        const keyMap = {
+            'Escape': 'Escape',
+            'F1': 'F1', 'F2': 'F2', 'F3': 'F3', 'F4': 'F4', 'F5': 'F5',
+            'F6': 'F6', 'F7': 'F7', 'F8': 'F8', 'F9': 'F9', 'F10': 'F10',
+            'F11': 'F11', 'F12': 'F12',
+            '`': '`', '1': '1', '2': '2', '3': '3', '4': '4', '5': '5',
+            '6': '6', '7': '7', '8': '8', '9': '9', '0': '0',
+            '-': '-', '=': '=', 'Backspace': 'Backspace',
+            'Tab': 'Tab', 'q': 'q', 'w': 'w', 'e': 'e', 'r': 'r', 't': 't',
+            'y': 'y', 'u': 'u', 'i': 'i', 'o': 'o', 'p': 'p',
+            '[': '[', ']': ']', '\\': '\\',
+            'CapsLock': 'CapsLock', 'a': 'a', 's': 's', 'd': 'd', 'f': 'f',
+            'g': 'g', 'h': 'h', 'j': 'j', 'k': 'k', 'l': 'l',
+            ';': ';', "'": "'", 'Enter': 'Enter',
+            'Shift': 'Shift', 'z': 'z', 'x': 'x', 'c': 'c', 'v': 'v',
+            'b': 'b', 'n': 'n', 'm': 'm', ',': ',', '.': '.', '/': '/',
+            'Control': 'Control', 'Meta': 'Meta', 'Alt': 'Alt', ' ': ' ',
+            'ContextMenu': 'ContextMenu'
+        };
+
+        // 手指映射
+        const fingerMap = {
+            'q': '左小指', 'a': '左小指', 'z': '左小指',
+            'w': '左无名指', 's': '左无名指', 'x': '左无名指',
+            'e': '左中指', 'd': '左中指', 'c': '左中指',
+            'r': '左食指', 't': '左食指', 'f': '左食指', 'g': '左食指', 'v': '左食指', 'b': '左食指',
+            'y': '右食指', 'u': '右食指', 'h': '右食指', 'j': '右食指', 'n': '右食指', 'm': '右食指',
+            'i': '右中指', 'k': '右中指', ',': '右中指',
+            'o': '右无名指', 'l': '右无名指', '.': '右无名指',
+            'p': '右小指', ';': '右小指', '/': '右小指',
+            ' ': '拇指'
+        };
+
+        // 阻止默认行为的按键
+        const preventDefaultKeys = new Set([
+            'Tab', 'Space', 'Escape', 'F1', 'F2', 'F3', 'F4', 'F5',
+            'F6', 'F7', 'F8', 'F9', 'F10', 'F11', 'F12'
+        ]);
+
+        async function getNewWord() {
+            const response = await fetch('/get_word');
+            const data = await response.json();
+            currentWord = data.word;
+            hasError = false;  // 重置错误标记
+            currentInput = '';  // 先清空输入
+            renderWord();  // 再渲染单词
+        }
+
+        function renderWord() {
+            const wordContainer = document.getElementById('currentWord');
+            wordContainer.innerHTML = '';
+            
+            // 清除所有键盘按键的高亮状态
+            document.querySelectorAll('.key.highlight').forEach(key => {
+                key.classList.remove('highlight');
+            });
+            
+            for (let i = 0; i < currentWord.length; i++) {
+                const letter = currentWord[i];
+                const letterDiv = document.createElement('div');
+                letterDiv.className = 'word-letter';
+                letterDiv.textContent = letter;
+                
+                // 如果是第一个字母或者是当前要输入的字母
+                if (i === currentInput.length || (currentInput.length === 0 && i === 0)) {
+                    letterDiv.classList.add('current');
+                    const fingerHint = document.createElement('div');
+                    fingerHint.className = 'finger-hint';
+                    fingerHint.textContent = fingerMap[letter.toLowerCase()] || '';
+                    letterDiv.appendChild(fingerHint);
+                    
+                    // 高亮对应的键盘按键
+                    const keyElement = document.querySelector(`[data-key="${letter.toLowerCase()}"]`);
+                    if (keyElement) {
+                        keyElement.classList.add('highlight');
+                    }
+                } else if (i < currentInput.length) {
+                    // 只有当有输入时才检查正确性
+                    if (currentInput[i] === letter) {
+                        letterDiv.classList.add('correct');
+                    } else {
+                        letterDiv.classList.add('incorrect');
+                    }
+                }
+                
+                wordContainer.appendChild(letterDiv);
+            }
+        }
+
+        async function updateProgress(accuracy) {
+            const response = await fetch('/update_progress', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    user_id: userId,
+                    accuracy: accuracy
+                }),
+            });
+            const data = await response.json();
+            if (data.success) {
+                wordsTyped++;
+                document.getElementById('wordsTyped').textContent = wordsTyped;
+                document.getElementById('accuracy').textContent = Math.round(accuracy) + '%';
+                document.getElementById('level').textContent = data.level;
+            }
+        }
+
+        function updateSpeed() {
+            if (startTime) {
+                const elapsedTime = (Date.now() - startTime) / 60000; // 转换为分钟
+                const speed = Math.round(wordsTyped / elapsedTime);
+                document.getElementById('speed').textContent = speed + ' WPM';
+                if (speed > bestSpeed) {
+                    bestSpeed = speed;
+                    document.getElementById('bestSpeed').textContent = bestSpeed + ' WPM';
+                }
+            }
+        }
+
+        function updatePracticeTime() {
+            if (startTime) {
+                const elapsedSeconds = Math.floor((Date.now() - startTime) / 1000);
+                const minutes = Math.floor(elapsedSeconds / 60);
+                const seconds = elapsedSeconds % 60;
+                document.getElementById('practiceTime').textContent = 
+                    `${minutes}:${seconds.toString().padStart(2, '0')}`;
+            }
+        }
+
+        // 处理键盘事件
+        document.addEventListener('keydown', function(e) {
+            if (!startTime) {
+                startTime = Date.now();
+                setInterval(updateSpeed, 1000);
+                setInterval(updatePracticeTime, 1000);
+            }
+
+            // 阻止特定按键的默认行为
+            if (preventDefaultKeys.has(e.key)) {
+                e.preventDefault();
+            }
+
+            const key = e.key;
+            const keyElement = document.querySelector(`[data-key="${keyMap[key]}"]`);
+            if (keyElement) {
+                keyElement.classList.add('active');
+            }
+
+            if (key === 'Backspace') {
+                e.preventDefault();
+                currentInput = currentInput.slice(0, -1);
+                renderWord();
+            } else if (key.length === 1 && /[a-zA-Z]/.test(key)) {
+                e.preventDefault();
+                const nextLetter = currentWord[currentInput.length];
+                
+                // 检查输入是否正确
+                if (key.toLowerCase() !== nextLetter.toLowerCase()) {
+                    // 如果输入错误，立即重置
+                    currentInput = '';
+                    renderWord();
+                    return;
+                }
+                
+                currentInput += key.toLowerCase();
+                renderWord();
+                
+                if (currentInput === currentWord) {
+                    // 如果完全正确，进入下一个单词
+                    correctWords++;
+                    const accuracy = (correctWords / (wordsTyped + 1)) * 100;
+                    updateProgress(accuracy);
+                    getNewWord();
+                }
+            }
+        });
+
+        document.addEventListener('keyup', function(e) {
+            const key = e.key;
+            const keyElement = document.querySelector(`[data-key="${keyMap[key]}"]`);
+            if (keyElement) {
+                keyElement.classList.remove('active');
+                keyElement.classList.remove('highlight');
+            }
+        });
+
+        // 初始化
+        getNewWord();
+
+        // 添加键盘焦点提示
+        document.addEventListener('click', function() {
+            document.body.focus();
+        });
+
+        // 页面加载完成后自动聚焦
+        window.addEventListener('load', function() {
+            document.body.focus();
+        });
+    </script>
+</body>
+</html> 
