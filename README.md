@@ -8,7 +8,6 @@
 - ⌨️ 实时键盘可视化
 - 👆 手指位置提示
 - 📊 字母统计与分析
-- 🌙 深色/浅色主题切换
 - ⏱️ 打字速度统计
 - 📈 错误率分析
 
@@ -23,7 +22,7 @@
 
 1. 克隆仓库：
 ```bash
-git clone https://github.com/yourusername/Key-Hand.git
+git clone https://github.com/QG-gandaofu/key-hand.git
 cd Key-Hand
 ```
 
@@ -69,11 +68,6 @@ python app.py
 ## 自定义词库
 
 您可以通过编辑 `words.txt` 文件来自定义练习词库。每行一个单词，系统会自动加载。
-
-## 主题切换
-
-- 点击右上角的"切换主题"按钮可以手动切换深色/浅色主题
-- 勾选"自动切换"可以根据系统时间自动切换主题
 
 ## 贡献
 
