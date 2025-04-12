@@ -322,6 +322,106 @@
         [data-theme="dark"] .purple-finger { background-color: #e056fd; }
         [data-theme="dark"] .violet-finger { background-color: #a29bfe; }
         [data-theme="dark"] .thumb { background-color: #74b9ff; }
+        .letter-stats {
+            position: fixed;
+            left: 20px;
+            top: 20px;
+            background-color: var(--bg-color);
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+            width: 300px;
+            z-index: 1000;
+            max-height: calc(100vh - 40px);
+            overflow-y: auto;
+            /* 自定义滚动条样式 */
+            scrollbar-width: thin;
+            scrollbar-color: var(--key-border) var(--bg-color);
+        }
+
+        /* 自定义滚动条样式 - Webkit浏览器 */
+        .letter-stats::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .letter-stats::-webkit-scrollbar-track {
+            background: var(--bg-color);
+            border-radius: 4px;
+        }
+
+        .letter-stats::-webkit-scrollbar-thumb {
+            background-color: var(--key-border);
+            border-radius: 4px;
+            border: 2px solid var(--bg-color);
+        }
+
+        .letter-stats::-webkit-scrollbar-thumb:hover {
+            background-color: var(--text-color);
+        }
+
+        .letter-stats h3 {
+            margin: 0 0 20px 0;
+            color: var(--text-color);
+            text-align: center;
+            font-size: 24px;
+            position: sticky;
+            top: 0;
+            background-color: var(--bg-color);
+            padding: 10px 0;
+            z-index: 1;
+        }
+
+        .letter-stat-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 15px;
+            padding: 15px;
+            background-color: var(--container-bg);
+            border-radius: 10px;
+            transition: transform 0.2s;
+        }
+
+        .letter-stat-item:hover {
+            transform: scale(1.02);
+        }
+
+        .letter-stat-letter {
+            font-size: 48px;
+            font-weight: bold;
+            color: var(--text-color);
+            width: 80px;
+            height: 80px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: var(--key-bg);
+            border-radius: 10px;
+            margin-right: 20px;
+        }
+
+        .letter-stat-info {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .letter-stat-rate {
+            font-size: 20px;
+            color: var(--progress-text);
+        }
+
+        .letter-stat-count {
+            font-size: 18px;
+            color: var(--progress-text);
+        }
+
+        .error-bar {
+            height: 6px;
+            background-color: var(--incorrect-letter);
+            border-radius: 3px;
+            margin-top: 8px;
+        }
     </style>
 </head>
 <body>
@@ -492,6 +592,11 @@
                 <span>右小指</span>
             </div>
         </div>
+
+        <div class="letter-stats">
+            <h3>易错字母</h3>
+            <div id="letterStats"></div>
+        </div>
     </div>
 
     <script>
@@ -636,6 +741,99 @@
             }
         }
 
+        // 更新字母统计
+        async function updateLetterStats(letter, isCorrect) {
+            try {
+                const response = await fetch('/update_letter_stats', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        user_id: userId,
+                        letter: letter,
+                        is_correct: isCorrect
+                    })
+                });
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                await updateLetterStatsDisplay();
+            } catch (error) {
+                console.error('Error updating letter stats:', error);
+            }
+        }
+
+        // 更新字母统计显示
+        async function updateLetterStatsDisplay() {
+            try {
+                const response = await fetch(`/get_letter_stats?user_id=${userId}`);
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                const stats = await response.json();
+                
+                const statsContainer = document.getElementById('letterStats');
+                statsContainer.innerHTML = '';
+                
+                if (stats.length === 0) {
+                    const emptyMessage = document.createElement('div');
+                    emptyMessage.className = 'letter-stat-item';
+                    emptyMessage.textContent = '暂无数据';
+                    statsContainer.appendChild(emptyMessage);
+                    return;
+                }
+                
+                // 根据容器高度计算可显示的统计项数量
+                const containerHeight = window.innerHeight - 100; // 减去顶部和底部边距
+                const itemHeight = 120; // 每个统计项的大致高度
+                const maxItems = Math.floor(containerHeight / itemHeight);
+                
+                // 只显示可容纳的统计项数量
+                const displayStats = stats.slice(0, maxItems);
+                
+                displayStats.forEach(stat => {
+                    const item = document.createElement('div');
+                    item.className = 'letter-stat-item';
+                    
+                    const letter = document.createElement('div');
+                    letter.className = 'letter-stat-letter';
+                    letter.textContent = stat.letter.toUpperCase();
+                    
+                    const info = document.createElement('div');
+                    info.className = 'letter-stat-info';
+                    
+                    const rate = document.createElement('div');
+                    rate.className = 'letter-stat-rate';
+                    rate.textContent = `准确率: ${(100 - stat.error_rate).toFixed(1)}%`;
+                    
+                    const count = document.createElement('div');
+                    count.className = 'letter-stat-count';
+                    count.textContent = `输入次数: ${stat.total_typed}`;
+                    
+                    const bar = document.createElement('div');
+                    bar.className = 'error-bar';
+                    bar.style.width = `${Math.min(stat.error_rate, 100)}%`;
+                    
+                    info.appendChild(rate);
+                    info.appendChild(count);
+                    info.appendChild(bar);
+                    
+                    item.appendChild(letter);
+                    item.appendChild(info);
+                    
+                    statsContainer.appendChild(item);
+                });
+            } catch (error) {
+                console.error('Error fetching letter stats:', error);
+                const statsContainer = document.getElementById('letterStats');
+                statsContainer.innerHTML = '<div class="letter-stat-item">加载失败</div>';
+            }
+        }
+
+        // 监听窗口大小变化，重新计算显示数量
+        window.addEventListener('resize', updateLetterStatsDisplay);
+
         // 处理键盘事件
         document.addEventListener('keydown', function(e) {
             if (!startTime) {
@@ -662,10 +860,12 @@
             } else if (key.length === 1 && /[a-zA-Z]/.test(key)) {
                 e.preventDefault();
                 const nextLetter = currentWord[currentInput.length];
+                const isCorrect = key.toLowerCase() === nextLetter.toLowerCase();
                 
-                // 检查输入是否正确
-                if (key.toLowerCase() !== nextLetter.toLowerCase()) {
-                    // 如果输入错误，立即重置
+                // 更新字母统计
+                updateLetterStats(key.toLowerCase(), isCorrect);
+                
+                if (!isCorrect) {
                     currentInput = '';
                     renderWord();
                     return;
@@ -675,7 +875,6 @@
                 renderWord();
                 
                 if (currentInput === currentWord) {
-                    // 如果完全正确，进入下一个单词
                     correctWords++;
                     const accuracy = (correctWords / (wordsTyped + 1)) * 100;
                     updateProgress(accuracy);
@@ -760,6 +959,9 @@
                 localStorage.setItem('theme', newTheme);
             }
         });
+
+        // 页面加载时初始化字母统计显示
+        updateLetterStatsDisplay();
     </script>
 </body>
 </html> 

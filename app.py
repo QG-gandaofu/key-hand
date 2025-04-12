@@ -2,6 +2,7 @@ from flask import Flask, render_template, request, jsonify
 from flask_sqlalchemy import SQLAlchemy
 import random
 import os
+import sqlite3
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///typing.db'
@@ -71,9 +72,95 @@ def update_progress():
         'level': user_progress[user_id]['level']
     })
 
+@app.route('/update_letter_stats', methods=['POST'])
+def update_letter_stats():
+    try:
+        data = request.json
+        user_id = data.get('user_id')
+        letter = data.get('letter')
+        is_correct = data.get('is_correct')
+        
+        if not all([user_id, letter, is_correct is not None]):
+            return jsonify({'error': 'Missing required parameters'}), 400
+        
+        conn = sqlite3.connect('typing.db')
+        c = conn.cursor()
+        
+        # 更新字母统计
+        c.execute('''
+            INSERT INTO letter_stats (user_id, letter, total, errors)
+            VALUES (?, ?, 1, ?)
+            ON CONFLICT(user_id, letter) DO UPDATE SET
+            total = total + 1,
+            errors = errors + ?
+        ''', (user_id, letter, 0 if is_correct else 1, 0 if is_correct else 1))
+        
+        conn.commit()
+        conn.close()
+        return jsonify({'status': 'success'})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/get_letter_stats', methods=['GET'])
+def get_letter_stats():
+    try:
+        user_id = request.args.get('user_id')
+        if not user_id:
+            return jsonify({'error': 'Missing user_id parameter'}), 400
+        
+        conn = sqlite3.connect('typing.db')
+        c = conn.cursor()
+        
+        # 获取所有字母的统计信息
+        c.execute('''
+            SELECT letter, 
+                   ROUND(errors * 100.0 / total, 2) as error_rate,
+                   total as total_typed
+            FROM letter_stats
+            WHERE user_id = ? AND total > 0
+            ORDER BY error_rate DESC, total DESC
+        ''', (user_id,))
+        
+        stats = [{'letter': row[0], 'error_rate': row[1], 'total_typed': row[2]} 
+                for row in c.fetchall()]
+        
+        conn.close()
+        return jsonify(stats)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+def init_db():
+    conn = sqlite3.connect('typing.db')
+    c = conn.cursor()
+    
+    # 创建用户表
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS users (
+            id TEXT PRIMARY KEY,
+            best_speed REAL,
+            total_practice_time INTEGER,
+            total_words INTEGER,
+            correct_words INTEGER
+        )
+    ''')
+    
+    # 创建字母统计表
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS letter_stats (
+            user_id TEXT,
+            letter TEXT,
+            total INTEGER DEFAULT 0,
+            errors INTEGER DEFAULT 0,
+            PRIMARY KEY (user_id, letter)
+        )
+    ''')
+    
+    conn.commit()
+    conn.close()
+
 # 确保数据库表存在
 with app.app_context():
-    db.create_all()
+    init_db()
 
 if __name__ == '__main__':
     app.run(debug=True) 
