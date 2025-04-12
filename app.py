@@ -111,17 +111,19 @@ def get_letter_stats():
         conn = sqlite3.connect('typing.db')
         c = conn.cursor()
         
-        # 获取所有字母的统计信息
+        # 获取错误率最高的前5个字母
         c.execute('''
             SELECT letter, 
                    ROUND(errors * 100.0 / total, 2) as error_rate,
-                   total as total_typed
+                   total as total_typed,
+                   errors
             FROM letter_stats
             WHERE user_id = ? AND total > 0
             ORDER BY error_rate DESC, total DESC
+            LIMIT 5
         ''', (user_id,))
         
-        stats = [{'letter': row[0], 'error_rate': row[1], 'total_typed': row[2]} 
+        stats = [{'letter': row[0], 'error_rate': row[1], 'total_typed': row[2], 'errors': row[3]} 
                 for row in c.fetchall()]
         
         conn.close()

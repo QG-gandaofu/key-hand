@@ -6,21 +6,33 @@
     <title>打字练习</title>
     <style>
         :root {
-            --bg-color: #f5f7fa;
-            --text-color: #2c3e50;
-            --key-bg: #e8edf2;
-            --key-border: #d1d8e0;
+            --bg-color: #1e1e1e;
+            --text-color: #ffffff;
+            --container-bg: #2d2d2d;
+            --key-bg: #3d3d3d;
+            --key-border: #4d4d4d;
+            --key-text: #ffffff;
+            /* 键盘上显示的确切颜色 */
+            --finger-left-pinky: #ff6b6b;     /* 红色 - 左小指 */
+            --finger-left-ring: #ffa94d;      /* 橙色 - 左无名指 */
+            --finger-left-middle: #ffd43b;    /* 黄色 - 左中指 */
+            --finger-left-index: #69db7c;     /* 绿色 - 左食指 */
+            --finger-space: #4dabf7;          /* 蓝色 - 空格 */
+            --finger-right-index: #4dabf7;    /* 蓝色 - 右食指 */
+            --finger-right-middle: #748ffc;   /* 紫色 - 右中指 */
+            --finger-right-ring: #da77f2;     /* 粉紫色 - 右无名指 */
+            --finger-right-pinky: #9775fa;    /* 淡紫色 - 右小指 */
             --key-active: #4CAF50;
-            --key-highlight: #2196F3;
-            --word-bg: #ffffff;
-            --current-letter: #e3f2fd;
-            --correct-letter: #e8f5e9;
-            --incorrect-letter: #ffebee;
-            --container-bg: #ffffff;
-            --progress-bg: #f1f3f5;
-            --progress-text: #495057;
-            --keyboard-bg: #e8edf2;
-            --key-text: #2c3e50;
+            --key-correct: #4CAF50;
+            --key-incorrect: #FF9800;
+            --key-hover: #d0d0d0;
+            --progress-bg: #e0e0e0;
+            --progress-text: #666;
+            --incorrect-letter: #FF9800;
+            --word-bg: #2a2d31;
+            --current-letter: #1e3a8a;
+            --correct-letter: #1b4332;
+            --keyboard-bg: #2a2d31;
             --key-active-text: #ffffff;
             --key-highlight-text: #ffffff;
         }
@@ -190,11 +202,13 @@
             padding: 0 8px;
             background-color: var(--word-bg);
             color: var(--text-color);
-            transition: background-color 0.3s, color 0.3s;
+            transition: all 0.3s ease;
+            border-radius: 8px;
+            font-size: 64px;
         }
         .word-letter.current {
-            background-color: var(--current-letter);
-            border-radius: 5px;
+            background-color: transparent;
+            border: 2px solid;
         }
         .word-letter.correct {
             background-color: var(--correct-letter);
@@ -204,12 +218,15 @@
         }
         .finger-hint {
             position: absolute;
-            top: -20px;
+            top: -45px;
             left: 50%;
             transform: translateX(-50%);
-            font-size: 12px;
-            color: #666;
+            font-size: 28px;
             white-space: nowrap;
+            font-weight: bold;
+            padding: 4px 12px;
+            border-radius: 6px;
+            text-shadow: 0 0 3px rgba(0, 0, 0, 0.3);
         }
         .key.highlight {
             background-color: var(--key-highlight);
@@ -332,31 +349,6 @@
             box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
             width: 300px;
             z-index: 1000;
-            max-height: calc(100vh - 40px);
-            overflow-y: auto;
-            /* 自定义滚动条样式 */
-            scrollbar-width: thin;
-            scrollbar-color: var(--key-border) var(--bg-color);
-        }
-
-        /* 自定义滚动条样式 - Webkit浏览器 */
-        .letter-stats::-webkit-scrollbar {
-            width: 8px;
-        }
-
-        .letter-stats::-webkit-scrollbar-track {
-            background: var(--bg-color);
-            border-radius: 4px;
-        }
-
-        .letter-stats::-webkit-scrollbar-thumb {
-            background-color: var(--key-border);
-            border-radius: 4px;
-            border: 2px solid var(--bg-color);
-        }
-
-        .letter-stats::-webkit-scrollbar-thumb:hover {
-            background-color: var(--text-color);
         }
 
         .letter-stats h3 {
@@ -408,12 +400,18 @@
 
         .letter-stat-rate {
             font-size: 20px;
-            color: var(--progress-text);
+            color: var(--text-color);
+            display: flex;
+            align-items: center;
+            gap: 10px;
         }
 
         .letter-stat-count {
             font-size: 18px;
             color: var(--progress-text);
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
         }
 
         .error-bar {
@@ -421,6 +419,23 @@
             background-color: var(--incorrect-letter);
             border-radius: 3px;
             margin-top: 8px;
+            transition: width 0.3s ease;
+        }
+
+        .finger {
+            position: absolute;
+            font-size: 24px;
+            font-weight: bold;
+            color: var(--text-color);
+            transition: all 0.3s ease;
+            z-index: 10;
+            text-shadow: 0 0 3px rgba(255, 255, 255, 0.8);
+        }
+
+        .finger.active {
+            transform: scale(1.2);
+            color: var(--key-active);
+            text-shadow: 0 0 5px rgba(255, 255, 255, 0.9);
         }
     </style>
 </head>
@@ -673,12 +688,22 @@
                 letterDiv.className = 'word-letter';
                 letterDiv.textContent = letter;
                 
-                // 如果是第一个字母或者是当前要输入的字母
-                if (i === currentInput.length || (currentInput.length === 0 && i === 0)) {
+                // 如果是当前要输入的字母
+                if (i === currentInput.length) {
                     letterDiv.classList.add('current');
                     const fingerHint = document.createElement('div');
                     fingerHint.className = 'finger-hint';
-                    fingerHint.textContent = fingerMap[letter.toLowerCase()] || '';
+                    const fingerName = fingerMap[letter.toLowerCase()];
+                    if (fingerName) {
+                        fingerHint.textContent = fingerName;
+                        // 根据手指设置颜色
+                        const fingerColor = getFingerColor(fingerName);
+                        if (fingerColor) {
+                            fingerHint.style.color = fingerColor;
+                            letterDiv.style.borderColor = fingerColor;
+                            letterDiv.style.backgroundColor = `${fingerColor}22`;
+                        }
+                    }
                     letterDiv.appendChild(fingerHint);
                     
                     // 高亮对应的键盘按键
@@ -687,7 +712,6 @@
                         keyElement.classList.add('highlight');
                     }
                 } else if (i < currentInput.length) {
-                    // 只有当有输入时才检查正确性
                     if (currentInput[i] === letter) {
                         letterDiv.classList.add('correct');
                     } else {
@@ -697,6 +721,22 @@
                 
                 wordContainer.appendChild(letterDiv);
             }
+        }
+
+        // 获取手指对应的颜色
+        function getFingerColor(fingerName) {
+            const colorMap = {
+                '左小指': 'var(--finger-left-pinky)',
+                '左无名指': 'var(--finger-left-ring)',
+                '左中指': 'var(--finger-left-middle)',
+                '左食指': 'var(--finger-left-index)',
+                '右食指': 'var(--finger-right-index)',
+                '右中指': 'var(--finger-right-middle)',
+                '右无名指': 'var(--finger-right-ring)',
+                '右小指': 'var(--finger-right-pinky)',
+                '拇指': 'var(--finger-space)'
+            };
+            return colorMap[fingerName];
         }
 
         async function updateProgress(accuracy) {
@@ -805,11 +845,11 @@
                     
                     const rate = document.createElement('div');
                     rate.className = 'letter-stat-rate';
-                    rate.textContent = `准确率: ${(100 - stat.error_rate).toFixed(1)}%`;
+                    rate.textContent = `错误率: ${stat.error_rate.toFixed(1)}%`;
                     
                     const count = document.createElement('div');
                     count.className = 'letter-stat-count';
-                    count.textContent = `输入次数: ${stat.total_typed}`;
+                    count.innerHTML = `总输入: ${stat.total_typed}次<br>错误: ${stat.errors}次`;
                     
                     const bar = document.createElement('div');
                     bar.className = 'error-bar';
@@ -962,6 +1002,56 @@
 
         // 页面加载时初始化字母统计显示
         updateLetterStatsDisplay();
+
+        // 更新手指显示
+        function updateFingers(currentLetter) {
+            // 清除所有手指的激活状态
+            document.querySelectorAll('.finger').forEach(finger => {
+                finger.classList.remove('active');
+            });
+
+            if (!currentLetter) return;
+
+            // 获取当前字母对应的手指
+            const finger = getFingerForLetter(currentLetter);
+            if (finger) {
+                const fingerElement = document.querySelector(`.finger.${finger}`);
+                if (fingerElement) {
+                    fingerElement.classList.add('active');
+                }
+            }
+        }
+
+        // 更新当前字母显示
+        function updateCurrentLetter() {
+            const currentLetter = word[currentIndex];
+            if (!currentLetter) return;
+
+            // 清除所有字母的高亮
+            document.querySelectorAll('.key span').forEach(span => {
+                span.style.color = '';
+                span.style.backgroundColor = '';
+            });
+
+            // 高亮当前字母
+            const keyElement = document.querySelector(`.key[data-key="${currentLetter}"]`);
+            if (keyElement) {
+                const span = keyElement.querySelector('span');
+                if (span) {
+                    const finger = getFingerForLetter(currentLetter);
+                    if (finger) {
+                        const color = getComputedStyle(document.documentElement)
+                            .getPropertyValue(`--finger-colors-${finger}`)
+                            .trim();
+                        span.style.color = '#fff';
+                        span.style.backgroundColor = color;
+                    }
+                }
+            }
+
+            // 更新手指显示
+            updateFingers(currentLetter);
+        }
     </script>
 </body>
 </html> 
